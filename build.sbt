@@ -1,21 +1,26 @@
-ThisBuild / version := "0.1.0"
-ThisBuild / scalaVersion := "2.12.15"
+ThisBuild / version := "0.2.0-SNAPSHOT"
+ThisBuild / scalaVersion := "2.13.8"
 ThisBuild / fork := true
+Compile / run := Defaults.runTask(Compile / fullClasspath, Compile / run / mainClass, Compile / run / runner).evaluated
+Compile / runMain := Defaults.runMainTask(Compile / fullClasspath, Compile / run / runner).evaluated
 
 name := "ps2events"
 
 val versions = new {
-  val spark = "3.1.2"
+  val spark = "3.2.1"
   val sttp = "3.5.1"
-  val hudi = "0.10.1"
+  val hadoop = "3.3.1"
 }
 
-libraryDependencies += "org.apache.hudi" %% "hudi-spark3.1.2-bundle" % versions.hudi
-//libraryDependencies += "org.apache.spark" %% "spark-avro" % versions.spark
-libraryDependencies += "org.apache.spark" %% "spark-sql" % versions.spark % "provided"
-libraryDependencies += "org.apache.spark" %% "spark-streaming" % versions.spark % "provided"
-libraryDependencies += "com.softwaremill.sttp.client3" %% "core" % versions.sttp
-libraryDependencies += "com.softwaremill.sttp.client3" %% "httpclient-backend" % versions.sttp
-libraryDependencies += "com.github.scopt" %% "scopt" % "4.0.1"
+libraryDependencies ++= Seq(
+  "org.apache.hadoop" % "hadoop-aws" % versions.hadoop % "provided",
+  "org.apache.spark" %% "spark-avro" % versions.spark % "provided",
+  "org.apache.spark" %% "spark-hadoop-cloud" % versions.spark % "provided",
+  "org.apache.spark" %% "spark-sql" % versions.spark % "provided",
+  "org.apache.spark" %% "spark-streaming" % versions.spark % "provided",
+  "com.github.scopt" %% "scopt" % "4.0.1",
+  "com.softwaremill.sttp.client3" %% "core" % versions.sttp,
+  "com.softwaremill.sttp.client3" %% "httpclient-backend" % versions.sttp,
+)
 
 assemblyPackageScala / assembleArtifact := false

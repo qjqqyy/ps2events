@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+set -euxo pipefail
+
+DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source $DIR/env
+
+$SPARK_HOME/bin/spark-submit \
+    --master 'local[2]' \
+    --driver-memory 2g \
+    --packages $SPARK_PACKAGES \
+    --conf spark.serializer=org.apache.spark.serializer.KryoSerializer \
+    --conf spark.speculation=false \
+    --conf spark.streaming.receiverRestartDelay=50 \
+    --conf spark.hadoop.fs.s3a.endpoint=$AWS_ENDPOINT \
+    --conf spark.hadoop.mapreduce.fileoutputcommitter.marksuccessfuljobs=false \
+    $DIR/../target/scala-2.13/ps2events-assembly-*.jar \
+    stream \
+    --service-id $PS2_SERVICE_ID \
+    --interval 15 \
+    $TABLE_LOCATION

@@ -33,11 +33,12 @@ class Ps2ApiWsClient(serviceId: String, consume: String => Unit)(implicit ec: Ex
 }
 
 object Ps2ApiWsClient {
-  final val SUBSCRIBE_ALL = """{
-                              |  "service": "event",
-                              |  "action": "subscribe",
-                              |  "characters": ["all"],
-                              |  "worlds": ["all"],
-                              |  "eventNames": ["all"]
-                              |}""".stripMargin
+  final val SUBSCRIBE_ALL =
+    """{
+      |  "service": "event",
+      |  "action": "subscribe",
+      |  "characters": ["all"],
+      |  "worlds": ["all"],
+      |  "eventNames": ["all"]
+      |}""".stripMargin
 }

@@ -6,7 +6,7 @@ import org.apache.spark.sql.{ SaveMode, SparkSession }
 import org.apache.spark.streaming.{ StreamingContext, Time }
 
 import java.time.format.DateTimeFormatter
-import java.time.{ Instant, ZoneOffset }
+import java.time.{ Instant, ZoneId }
 import java.util.UUID
 
 class Ps2EventStreamer(spark: SparkSession, ssc: StreamingContext, serviceId: String) {
@@ -20,7 +20,7 @@ class Ps2EventStreamer(spark: SparkSession, ssc: StreamingContext, serviceId: St
   private def getPartitionPathAndIncrementCounter(time: Time): String = {
     batchId += 1
     "%s/%s-%d".format(
-      formatter.format(Instant.ofEpochMilli(time.milliseconds).atOffset(ZoneOffset.UTC)),
+      formatter.format(Instant.ofEpochMilli(time.milliseconds).atZone(ZoneId.systemDefault())),
       uuid,
       batchId,
     )

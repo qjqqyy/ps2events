@@ -15,10 +15,9 @@ sealed trait Job {
 
 object Job {
   final val SPARK_ON_CLOUD_WRITER_CONF = Map(
-    "spark.hadoop.fs.s3a.committer.name" -> "directory",
+    // "spark.hadoop.fs.s3a.committer.name" -> "directory",
     // "spark.hadoop.fs.s3a.committer.name" -> "partitioned",
-    // "spark.hadoop.fs.s3a.committer.magic.enabled" -> "true",
-    // "spark.hadoop.fs.s3a.committer.name" -> "magic",
+    "spark.hadoop.fs.s3a.committer.name" -> "magic",
     "spark.hadoop.parquet.enable.summary-metadata" -> "false",
     "spark.sql.parquet.output.committer.class" -> classOf[BindingParquetOutputCommitter].getCanonicalName,
     "spark.sql.sources.commitProtocolClass" -> classOf[PathOutputCommitProtocol].getCanonicalName,

@@ -49,8 +49,10 @@ case class LoggerJob(
 case class CompactionJob(
     inputBasePath: String = "",
     outputBasePath: String = "",
-    date: LocalDate = LocalDate.now().minusDays(1),
+    dates: List[LocalDate] = Nil,
+    backfillLocation: Option[String] = None,
 ) extends Job {
+  private def datesToRun = if (dates.nonEmpty) dates.toSet else Set(LocalDate.now().minusDays(1))
 
   def setSparkConf(conf: SparkConf): SparkConf = {
     if (inputBasePath.startsWith("s3a://")) {
@@ -62,6 +64,12 @@ case class CompactionJob(
     conf
   }
 
-  def run(spark: SparkSession): Unit =
-    new Compactor(spark).run(date, inputBasePath, outputBasePath)
+  def run(spark: SparkSession): Unit = {
+    val compactor = backfillLocation match {
+      case Some(location) => new Compactor.CompactorWithBackfill(spark, location)
+      case None           => new Compactor(spark)
+    }
+
+    datesToRun.foreach(compactor.run(_, inputBasePath, outputBasePath))
+  }
 }

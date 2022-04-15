@@ -8,6 +8,7 @@ import sttp.ws.WebSocket
 import scala.concurrent.{ ExecutionContext, Future }
 
 class Ps2ApiWsClient(serviceId: String, consume: String => Unit)(implicit ec: ExecutionContext) {
+  private val backend = HttpClientFutureBackend()
 
   private def consumeAllMessages(ws: WebSocket[Future]): Future[Unit] =
     ws.receiveText()
@@ -31,8 +32,6 @@ class Ps2ApiWsClient(serviceId: String, consume: String => Unit)(implicit ec: Ex
 }
 
 object Ps2ApiWsClient {
-  private val backend = HttpClientFutureBackend()
-
   final val SUBSCRIBE_ALL =
     """{
       |  "service": "event",

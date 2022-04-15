@@ -1,6 +1,7 @@
 package net.b0ss.ps2events
 
 import net.b0ss.ps2events.Ps2EventStreamer._
+import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{ SaveMode, SparkSession }
 import org.apache.spark.streaming.{ StreamingContext, Time }
@@ -26,27 +27,13 @@ class Ps2EventStreamer(spark: SparkSession, ssc: StreamingContext, serviceId: St
     )
   }
 
-  private val eventSchema: StructType = StructType(
-    Seq(
-      StructField("type", StringType),
-      StructField("service", StringType),
-      StructField(
-        "payload",
-        StructType(EVENT_PAYLOAD_COLUMNS.map { case (colName, _) => StructField(colName, StringType) }),
-      ),
-    )
-  )
-
-  private val selectCols =
-    EVENT_PAYLOAD_COLUMNS.map { case (colName, colType) => $"payload.$colName".cast(colType).as(colName) }
-
   def save(basePath: String): Unit = {
     ps2eventsStream.foreachRDD { (eventsRdd, time) =>
       spark.read
-        .schema(eventSchema)
+        .schema(EVENT_SCHEMA)
         .json(eventsRdd.coalesce(1).toDS())
         .filter($"type" === "serviceMessage" && $"service" === "event")
-        .select(selectCols: _*)
+        .select(DATA_COLUMNS_WITH_CAST: _*)
         .write
         .format("avro")
         .mode(SaveMode.ErrorIfExists)
@@ -106,4 +93,19 @@ object Ps2EventStreamer {
     ("world_id", IntegerType),
     ("zone_id", IntegerType),
   )
+
+  final val EVENT_SCHEMA: StructType = StructType(
+    Array(
+      StructField("type", StringType),
+      StructField("service", StringType),
+      StructField(
+        "payload",
+        StructType(EVENT_PAYLOAD_COLUMNS.map { case (colName, _) => StructField(colName, StringType) }),
+      ),
+    )
+  )
+
+  final val DATA_COLUMNS_WITH_CAST =
+    EVENT_PAYLOAD_COLUMNS.map { case (colName, colType) => col(s"payload.$colName").cast(colType).as(colName) }
+
 }

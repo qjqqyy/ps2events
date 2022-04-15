@@ -6,9 +6,10 @@ DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source $DIR/env
 
 $SPARK_HOME/bin/spark-submit \
-    --master 'local[8]' \
-    --driver-memory 8g \
+    --master 'local[4]' \
+    --driver-memory 10g \
     --packages $SPARK_PACKAGES \
+    --jars $SPARK_HADOOP_CLOUD_JAR \
     --conf spark.serializer=org.apache.spark.serializer.KryoSerializer \
     --conf spark.speculation=false \
     --conf spark.hadoop.fs.s3a.endpoint=$AWS_ENDPOINT \
@@ -16,5 +17,6 @@ $SPARK_HOME/bin/spark-submit \
     --conf spark.sql.parquet.compression.codec=gzip \
     $DIR/../target/scala-2.13/ps2events-assembly-*.jar \
     compact \
+    "$@" \
     $TABLE_LOCATION \
     $COMPACTED_TABLE_LOCATION

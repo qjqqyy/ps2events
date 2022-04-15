@@ -9,6 +9,7 @@ $SPARK_HOME/bin/spark-submit \
     --master 'local[2]' \
     --driver-memory 2g \
     --packages $SPARK_PACKAGES \
+    --jars $SPARK_HADOOP_CLOUD_JAR \
     --conf spark.serializer=org.apache.spark.serializer.KryoSerializer \
     --conf spark.speculation=false \
     --conf spark.streaming.receiverRestartDelay=50 \
@@ -17,5 +18,5 @@ $SPARK_HOME/bin/spark-submit \
     $DIR/../target/scala-2.13/ps2events-assembly-*.jar \
     stream \
     --service-id $PS2_SERVICE_ID \
-    --interval 15 \
+    --interval 60 \
     $TABLE_LOCATION

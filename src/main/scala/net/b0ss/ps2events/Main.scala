@@ -12,6 +12,8 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     val builder = OParser.builder[Job]
+    implicit val localDateRead: scopt.Read[LocalDate] = scopt.Read.reads(LocalDate.parse(_))
+
     val parser = {
       import builder._
       val streamCommand = cmd("stream")
@@ -20,6 +22,7 @@ object Main {
         .children(
           opt[Int]("interval")
             .optional()
+            .valueName("<seconds>")
             .text("commit interval (in seconds) for Spark streaming, default: 60s")
             .action((x, j) => j.asInstanceOf[LoggerJob].copy(batchDuration = Seconds(x))),
           opt[String]("service-id")
@@ -35,10 +38,17 @@ object Main {
         .text("runs compaction job to convert full day of avro log data to parquet")
         .action((_, _) => CompactionJob())
         .children(
-          opt[String]("date")
+          opt[LocalDate]("date")
+            .minOccurs(0)
+            .maxOccurs(1000)
+            .valueName("<yyyy-mm-dd>")
+            .text("date(s) of data to trigger compaction for, default: yesterday, can specify multiple times")
+            .action((x, j) => j.asInstanceOf[CompactionJob].copy(dates = x :: j.asInstanceOf[CompactionJob].dates)),
+          opt[String]("backfill")
             .optional()
-            .text("date of data to trigger compaction for, default: yesterday")
-            .action((x, j) => j.asInstanceOf[CompactionJob].copy(date = LocalDate.parse(x))),
+            .valueName("<location>")
+            .text("location for backfill data (format: parquet, schema:<_raw:STRING, date:STRING>)")
+            .action((x, j) => j.asInstanceOf[CompactionJob].copy(backfillLocation = Some(x))),
           arg[String]("<log location>")
             .required()
             .text("location that log files were written to by logger job")

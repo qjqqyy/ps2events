@@ -44,8 +44,7 @@ class Ps2EventStreamer(spark: SparkSession, ssc: StreamingContext, serviceId: St
     ps2eventsStream.foreachRDD { (eventsRdd, time) =>
       spark.read
         .schema(eventSchema)
-        .json(eventsRdd.toDS())
-        .coalesce(1)
+        .json(eventsRdd.coalesce(1).toDS())
         .filter($"type" === "serviceMessage" && $"service" === "event")
         .select(selectCols: _*)
         .write

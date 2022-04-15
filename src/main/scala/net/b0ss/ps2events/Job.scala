@@ -63,5 +63,5 @@ case class CompactionJob(
   }
 
   def run(spark: SparkSession): Unit =
-    new Compactor(spark, date).runCompaction(inputBasePath, outputBasePath)
+    new Compactor(spark).run(date, inputBasePath, outputBasePath)
 }

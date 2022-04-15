@@ -19,7 +19,7 @@ class Ps2EventStreamer(spark: SparkSession, ssc: StreamingContext, serviceId: St
 
   private def getPartitionPathAndIncrementCounter(time: Time): String = {
     batchId += 1
-    "%s/%s-%d".format(
+    "%s/log_source=%s/log_batch_id=%d".format(
       formatter.format(Instant.ofEpochMilli(time.milliseconds).atZone(ZoneId.systemDefault())),
       uuid,
       batchId,
@@ -45,9 +45,11 @@ class Ps2EventStreamer(spark: SparkSession, ssc: StreamingContext, serviceId: St
       spark.read
         .schema(eventSchema)
         .json(eventsRdd.toDS())
-        .filter($"type" === "serviceMessage" && $"service" === "event")
-        .select(selectCols: _*)
         .coalesce(1)
+        .filter($"type" === "serviceMessage" && $"service" === "event")
+        .groupBy(selectCols: _*)
+        .count
+        .withColumnRenamed("count", "_event_multiplicity")
         .write
         .format("avro")
         .mode(SaveMode.ErrorIfExists)
@@ -63,6 +65,9 @@ object Ps2EventStreamer {
   private val formatter = DateTimeFormatter.ofPattern("'log_date='yyyy-MM-dd/'log_hour='HH")
 
   final val EVENT_PAYLOAD_COLUMNS: Vector[(String, DataType)] = Vector(
+    ("timestamp", IntegerType),
+    ("world_id", IntegerType),
+    ("character_id", LongType),
     ("achievement_id", IntegerType),
     ("amount", IntegerType),
     ("attacker_character_id", LongType),
@@ -71,7 +76,6 @@ object Ps2EventStreamer {
     ("attacker_vehicle_id", IntegerType),
     ("attacker_weapon_id", IntegerType),
     ("battle_rank", IntegerType),
-    ("character_id", LongType),
     ("character_loadout_id", IntegerType),
     ("context", StringType),
     ("duration_held", IntegerType),
@@ -99,12 +103,10 @@ object Ps2EventStreamer {
     ("outfit_id", LongType),
     ("previous_faction", IntegerType),
     ("skill_id", IntegerType),
-    ("timestamp", IntegerType),
     ("tr_population", IntegerType),
     ("triggering_faction", IntegerType),
     ("vehicle_id", IntegerType),
     ("vs_population", IntegerType),
-    ("world_id", IntegerType),
     ("zone_id", IntegerType),
   )
 }

@@ -10,7 +10,7 @@ import scala.util.{ Failure, Success }
 class Ps2WsReceiver(serviceId: String) extends Receiver[String](MEMORY_AND_DISK) {
 
   @transient implicit private lazy val ec: ExecutionContext =
-    ExecutionContext.fromExecutor(Executors.newFixedThreadPool(2))
+    ExecutionContext.fromExecutor(Executors.newSingleThreadExecutor())
 
   @transient private lazy val wsClient = new Ps2ApiWsClient(serviceId, store)
 

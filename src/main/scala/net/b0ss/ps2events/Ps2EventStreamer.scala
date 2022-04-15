@@ -47,9 +47,7 @@ class Ps2EventStreamer(spark: SparkSession, ssc: StreamingContext, serviceId: St
         .json(eventsRdd.toDS())
         .coalesce(1)
         .filter($"type" === "serviceMessage" && $"service" === "event")
-        .groupBy(selectCols: _*)
-        .count
-        .withColumnRenamed("count", "_event_multiplicity")
+        .select(selectCols: _*)
         .write
         .format("avro")
         .mode(SaveMode.ErrorIfExists)
@@ -65,9 +63,6 @@ object Ps2EventStreamer {
   private val formatter = DateTimeFormatter.ofPattern("'log_date='yyyy-MM-dd/'log_hour='HH")
 
   final val EVENT_PAYLOAD_COLUMNS: Vector[(String, DataType)] = Vector(
-    ("timestamp", IntegerType),
-    ("world_id", IntegerType),
-    ("character_id", LongType),
     ("achievement_id", IntegerType),
     ("amount", IntegerType),
     ("attacker_character_id", LongType),
@@ -76,6 +71,7 @@ object Ps2EventStreamer {
     ("attacker_vehicle_id", IntegerType),
     ("attacker_weapon_id", IntegerType),
     ("battle_rank", IntegerType),
+    ("character_id", LongType),
     ("character_loadout_id", IntegerType),
     ("context", StringType),
     ("duration_held", IntegerType),
@@ -103,10 +99,12 @@ object Ps2EventStreamer {
     ("outfit_id", LongType),
     ("previous_faction", IntegerType),
     ("skill_id", IntegerType),
+    ("timestamp", IntegerType),
     ("tr_population", IntegerType),
     ("triggering_faction", IntegerType),
     ("vehicle_id", IntegerType),
     ("vs_population", IntegerType),
+    ("world_id", IntegerType),
     ("zone_id", IntegerType),
   )
 }

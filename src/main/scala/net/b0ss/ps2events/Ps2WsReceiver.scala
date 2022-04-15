@@ -21,5 +21,5 @@ class Ps2WsReceiver(serviceId: String) extends Receiver[String](MEMORY_AND_DISK)
       case Failure(exception) => restart("websocket connection closed", exception)
     }
 
-  override def onStop(): Unit = wsClient.close()
+  override def onStop(): Unit = {} // wsClient.close()
 }

@@ -39,14 +39,13 @@ case class LoggerJob(
 
   lazy val sparkConf: SparkConf = {
     val conf = new SparkConf().setAppName("ps2-events-logger")
-    if (tableLocation.startsWith("s3a://")) {
-      SPARK_ON_CLOUD_WRITER_CONF.foreach { case (k, v) => conf.setIfMissing(k, v) }
-    }
+    if (tableLocation.startsWith("s3a://")) SPARK_ON_CLOUD_WRITER_CONF.foreach((conf.setIfMissing _).tupled)
     conf
   }
 
-  def run(): Unit =
-    new Ps2EventStreamer(spark, new StreamingContext(spark.sparkContext, batchDuration), serviceId).save(tableLocation)
+  lazy val ssc = new StreamingContext(spark.sparkContext, batchDuration)
+
+  def run(): Unit = new Ps2EventStreamer(spark, ssc, serviceId).save(tableLocation)
 }
 
 case class CompactionJob(
@@ -66,7 +65,7 @@ case class CompactionJob(
 
   def run(): Unit = {
     val compactor = backfillLocation match {
-      case Some(location) => new Compactor.CompactorWithBackfill(spark, location)
+      case Some(location) => new Compactor.WithBackfill(spark, location)
       case None           => new Compactor(spark)
     }
 

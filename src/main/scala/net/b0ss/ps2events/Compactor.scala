@@ -52,7 +52,7 @@ class Compactor(spark: SparkSession) {
 object Compactor {
   final val DATA_COLUMNS = EVENT_PAYLOAD_COLUMNS.map(p => col(p._1))
 
-  class CompactorWithBackfill(spark: SparkSession, backfillDatasetLocation: String) extends Compactor(spark) {
+  class WithBackfill(spark: SparkSession, backfillDatasetLocation: String) extends Compactor(spark) {
 
     import spark.implicits._
     val backfillDf: DataFrame = spark.read.parquet(backfillDatasetLocation)

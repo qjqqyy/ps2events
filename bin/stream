@@ -18,5 +18,5 @@ $SPARK_HOME/bin/spark-submit \
     $DIR/../target/scala-2.13/ps2events-assembly-*.jar \
     stream \
     --service-id $PS2_SERVICE_ID \
-    --interval 60 \
+    "$@" \
     $TABLE_LOCATION

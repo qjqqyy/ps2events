@@ -59,14 +59,10 @@ object Compactor {
 
     def loadBackfill(date: LocalDate): DataFrame = spark.read
       .schema(EVENT_SCHEMA)
-      .json(
-        backfillDf
-          .filter($"date" === date.toString)
-          .map(_.getString(0))
-      )
+      .json(backfillDf.filter($"date" === date.toString).select($"_raw".as[String]))
       .filter($"type" === "serviceMessage" && $"service" === "event")
       .select(DATA_COLUMNS_WITH_CAST: _*)
-      .withColumn("log_source", typedLit[Option[String]](Some("backfill")))
+      .withColumn("log_source", typedlit[Option[String]](Some("backfill")))
 
     override def run(date: LocalDate, inPath: String, outPath: String): Unit =
       save(compacted(loadAvro(inPath, date).union(loadBackfill(date))), outPath)

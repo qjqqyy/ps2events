@@ -1,14 +1,12 @@
 package net.b0ss.ps2events
 
-import org.apache.spark.SparkConf
-import org.apache.spark.sql.SparkSession
-import org.apache.spark.streaming._
+import org.apache.spark.streaming.Seconds
 import scopt.OParser
 
 import java.time.LocalDate
 
 object Main {
-  final val PROGRAM_NAME = "ps2-events-streamer"
+  final val PROGRAM_NAME = "ps2-events"
 
   def main(args: Array[String]): Unit = {
     val builder = OParser.builder[Job]
@@ -61,14 +59,6 @@ object Main {
       OParser.sequence(programName(PROGRAM_NAME), streamCommand, compactionCommand)
     }
 
-    OParser.parse(parser, args, null).foreach { job =>
-      val conf = job.setSparkConf(new SparkConf().setAppName(PROGRAM_NAME))
-      val spark = SparkSession
-        .builder()
-        .config(conf)
-        .getOrCreate()
-
-      job.run(spark)
-    }
+    OParser.parse(parser, args, null).foreach(_.run())
   }
 }

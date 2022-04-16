@@ -9,8 +9,10 @@ import org.apache.spark.streaming._
 import java.time.LocalDate
 
 sealed trait Job {
-  def setSparkConf(conf: SparkConf): SparkConf
-  def run(spark: SparkSession): Unit
+  protected def sparkConf: SparkConf
+  def run(): Unit
+
+  final protected lazy val spark: SparkSession = SparkSession.builder().config(sparkConf).getOrCreate()
 }
 
 object Job {
@@ -35,14 +37,15 @@ case class LoggerJob(
     tableLocation: String = "",
 ) extends Job {
 
-  def setSparkConf(conf: SparkConf): SparkConf = {
+  lazy val sparkConf: SparkConf = {
+    val conf = new SparkConf().setAppName("ps2-events-logger")
     if (tableLocation.startsWith("s3a://")) {
       SPARK_ON_CLOUD_WRITER_CONF.foreach { case (k, v) => conf.setIfMissing(k, v) }
     }
     conf
   }
 
-  def run(spark: SparkSession): Unit =
+  def run(): Unit =
     new Ps2EventStreamer(spark, new StreamingContext(spark.sparkContext, batchDuration), serviceId).save(tableLocation)
 }
 
@@ -52,19 +55,16 @@ case class CompactionJob(
     dates: List[LocalDate] = Nil,
     backfillLocation: Option[String] = None,
 ) extends Job {
-  private def datesToRun = if (dates.nonEmpty) dates.toSet else Set(LocalDate.now().minusDays(1))
+  private lazy val datesToRun = if (dates.nonEmpty) dates.toSet else Set(LocalDate.now().minusDays(1))
 
-  def setSparkConf(conf: SparkConf): SparkConf = {
-    if (inputBasePath.startsWith("s3a://")) {
-      SPARK_ON_CLOUD_READER_CONF.foreach { case (k, v) => conf.setIfMissing(k, v) }
-    }
-    if (outputBasePath.startsWith("s3a://")) {
-      SPARK_ON_CLOUD_WRITER_CONF.foreach { case (k, v) => conf.setIfMissing(k, v) }
-    }
+  lazy val sparkConf: SparkConf = {
+    val conf = new SparkConf().setAppName("ps2-events-compactor")
+    if (inputBasePath.startsWith("s3a://")) SPARK_ON_CLOUD_READER_CONF.foreach((conf.setIfMissing _).tupled)
+    if (outputBasePath.startsWith("s3a://")) SPARK_ON_CLOUD_WRITER_CONF.foreach((conf.setIfMissing _).tupled)
     conf
   }
 
-  def run(spark: SparkSession): Unit = {
+  def run(): Unit = {
     val compactor = backfillLocation match {
       case Some(location) => new Compactor.CompactorWithBackfill(spark, location)
       case None           => new Compactor(spark)

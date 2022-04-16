@@ -1,6 +1,7 @@
 package net.b0ss.ps2events
 
 import net.b0ss.ps2events.Ps2EventStreamer._
+import org.apache.spark.internal.Logging
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{ SaveMode, SparkSession }
@@ -10,13 +11,14 @@ import java.time.format.DateTimeFormatter
 import java.time.{ Instant, ZoneId }
 import java.util.UUID
 
-class Ps2EventStreamer(spark: SparkSession, ssc: StreamingContext, serviceId: String) {
+class Ps2EventStreamer(spark: SparkSession, ssc: StreamingContext, serviceId: String) extends Logging {
   import spark.implicits._
 
   private val ps2eventsStream = ssc.receiverStream(new Ps2WsReceiver(serviceId))
 
   private val uuid = UUID.randomUUID().toString
   private var batchId = 0
+  private var numBatchesWithoutHeartbeat = 0
 
   private def getPartitionPathAndIncrementCounter(time: Time): String = {
     batchId += 1
@@ -29,15 +31,29 @@ class Ps2EventStreamer(spark: SparkSession, ssc: StreamingContext, serviceId: St
 
   def save(basePath: String): Unit = {
     ps2eventsStream.foreachRDD { (eventsRdd, time) =>
-      spark.read
+      val parsedEvents = spark.read
         .schema(EVENT_SCHEMA)
         .json(eventsRdd.coalesce(1).toDS())
+
+      parsedEvents
         .filter($"type" === "serviceMessage" && $"service" === "event")
         .select(DATA_COLUMNS_WITH_CAST: _*)
         .write
         .format("avro")
         .mode(SaveMode.ErrorIfExists)
         .save(s"$basePath/${getPartitionPathAndIncrementCounter(time)}")
+
+      val noHeartbeat = parsedEvents.filter($"type" === "heartbeat" && $"service" === "event").isEmpty
+      if (noHeartbeat) {
+        numBatchesWithoutHeartbeat += 1
+        logWarning(s"$numBatchesWithoutHeartbeat batch(es) with no heartbeat event")
+        if (numBatchesWithoutHeartbeat >= 5) {
+          logError("more than 5 batches without heartbeat, assuming the websocket died, exiting")
+          ssc.stop()
+        }
+      } else {
+        numBatchesWithoutHeartbeat = 0
+      }
     }
 
     ssc.start()

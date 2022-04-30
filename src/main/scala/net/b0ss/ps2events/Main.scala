@@ -1,5 +1,6 @@
 package net.b0ss.ps2events
 
+import net.b0ss.ps2events.Job.{ CompactionJob, LoggerJob }
 import org.apache.spark.streaming.Seconds
 import scopt.OParser
 
@@ -42,11 +43,6 @@ object Main {
             .valueName("<yyyy-mm-dd>")
             .text("date(s) of data to trigger compaction for, default: yesterday, can specify multiple times")
             .action((x, j) => j.asInstanceOf[CompactionJob].copy(dates = x :: j.asInstanceOf[CompactionJob].dates)),
-          opt[String]("backfill")
-            .optional()
-            .valueName("<location>")
-            .text("location for backfill data (format: parquet, schema:<_raw:STRING, date:STRING>)")
-            .action((x, j) => j.asInstanceOf[CompactionJob].copy(backfillLocation = Some(x))),
           arg[String]("<log location>")
             .required()
             .text("location that log files were written to by logger job")

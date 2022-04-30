@@ -51,20 +51,4 @@ class Compactor(spark: SparkSession) {
 
 object Compactor {
   final val DATA_COLUMNS = EVENT_PAYLOAD_COLUMNS.map(p => col(p._1))
-
-  class WithBackfill(spark: SparkSession, backfillDatasetLocation: String) extends Compactor(spark) {
-
-    import spark.implicits._
-    val backfillDf: DataFrame = spark.read.parquet(backfillDatasetLocation)
-
-    def loadBackfill(date: LocalDate): DataFrame = spark.read
-      .schema(EVENT_SCHEMA)
-      .json(backfillDf.filter($"date" === date.toString).select($"_raw".as[String]))
-      .filter($"type" === "serviceMessage" && $"service" === "event")
-      .select(DATA_COLUMNS_WITH_CAST: _*)
-      .withColumn("log_source", typedlit[Option[String]](Some("backfill")))
-
-    override def run(date: LocalDate, inPath: String, outPath: String): Unit =
-      save(compacted(loadAvro(inPath, date).union(loadBackfill(date))), outPath)
-  }
 }

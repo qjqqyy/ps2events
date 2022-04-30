@@ -5,8 +5,8 @@ import sttp.client3._
 import sttp.client3.httpclient.HttpClientFutureBackend
 import sttp.ws.WebSocket
 
+import scala.concurrent._
 import scala.concurrent.duration.DurationInt
-import scala.concurrent.{ Await, ExecutionContext, Future }
 
 class Ps2ApiWsClient(serviceId: String, consume: String => Unit)(implicit ec: ExecutionContext) {
   private val backend = HttpClientFutureBackend()
@@ -28,7 +28,7 @@ class Ps2ApiWsClient(serviceId: String, consume: String => Unit)(implicit ec: Ex
     .response(asWebSocket(handleWebsocket))
     .send(backend)
 
-  def close(): Unit = Await.result(backend.close(), 5.seconds)
+  def close(): Unit = Await.result(backend.close(), 15.seconds)
 
 }
 

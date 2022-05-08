@@ -35,22 +35,24 @@ class Ps2EventStreamer(spark: SparkSession, ssc: StreamingContext, serviceId: St
         .schema(EVENT_SCHEMA)
         .json(eventsRdd.coalesce(1).toDS())
 
-      val reshaped = parsedEvents
+      parsedEvents
         .filter($"type" === "serviceMessage" && $"service" === "event")
         .select(DATA_COLUMNS_WITH_CAST: _*)
-
-      reshaped.write
+        .write
         .format("avro")
         .mode(SaveMode.ErrorIfExists)
         .save(s"$basePath/${getPartitionPathAndIncrementCounter(time)}")
 
       val noHeartbeat = parsedEvents.filter($"type" === "heartbeat" && $"service" === "event").isEmpty
-      val seenWorlds = reshaped.select($"world_id".as[Int]).distinct().collect().toSet
-      val isDataBad = noHeartbeat || ACTIVE_WORLDS.diff(seenWorlds).sizeIs >= 2
+      val seenWorlds =
+        parsedEvents.select($"payload.world_id".cast(IntegerType).as[Option[Int]]).distinct().collect().flatten
+      val isDataBad = noHeartbeat || (ACTIVE_WORLDS -- seenWorlds).sizeIs >= 2
 
       if (isDataBad) {
         numBadBatches += 1
-        logWarning(s"$numBadBatches batch(es) with bad data - noHeartBeat: $noHeartbeat, seenWorlds: $seenWorlds")
+        logWarning(
+          s"$numBadBatches batch(es) with bad data - noHeartBeat: $noHeartbeat, seenWorlds: ${seenWorlds.toSet}"
+        )
         if (numBadBatches >= 5) {
           logError("more than 5 batches with bad data, assuming the websocket died, exiting")
           ssc.stop()

@@ -8,6 +8,7 @@ import sttp.ws.WebSocket
 import java.util.{ Timer, TimerTask }
 import scala.concurrent._
 import scala.concurrent.duration.DurationInt
+import scala.util.Random
 
 class Ps2ApiWsClient(serviceId: String, consume: String => Unit)(implicit ec: ExecutionContext) {
   private val backend = HttpClientFutureBackend()
@@ -25,7 +26,7 @@ class Ps2ApiWsClient(serviceId: String, consume: String => Unit)(implicit ec: Ex
       new TimerTask {
         def run(): Unit = ws.close()
       },
-      15 * 60 * 1000,
+      3 * 60 * 1000 + Random.nextInt(3 * 60 * 1000),
     )
     ws.sendText(SUBSCRIBE_ALL)
       .flatMap(_ => consumeAllMessages(ws))

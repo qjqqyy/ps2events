@@ -28,7 +28,11 @@ class Ps2ApiWsClient(serviceId: String, consume: String => Unit)(implicit ec: Ex
     .response(asWebSocket(handleWebsocket))
     .send(backend)
 
-  def close(): Unit = Await.result(backend.close(), 15.seconds)
+  def close(): Unit = try {
+    Await.result(backend.close(), 5.seconds)
+  } catch {
+    case _: java.util.concurrent.TimeoutException =>
+  }
 
 }
 

@@ -1,4 +1,4 @@
-ThisBuild / version := "0.2.3"
+ThisBuild / version := "0.2.4"
 ThisBuild / scalaVersion := "2.13.8"
 ThisBuild / fork := true
 Compile / run := Defaults.runTask(Compile / fullClasspath, Compile / run / mainClass, Compile / run / runner).evaluated

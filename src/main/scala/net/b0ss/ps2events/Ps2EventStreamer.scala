@@ -18,7 +18,7 @@ class Ps2EventStreamer(spark: SparkSession, ssc: StreamingContext, serviceId: St
 
   private val uuid = UUID.randomUUID().toString
   private var batchId = 0
-  private var numBatchesWithoutHeartbeat = 0
+  private var numBadBatches = 0
 
   private def getPartitionPathAndIncrementCounter(time: Time): String = {
     batchId += 1
@@ -35,24 +35,28 @@ class Ps2EventStreamer(spark: SparkSession, ssc: StreamingContext, serviceId: St
         .schema(EVENT_SCHEMA)
         .json(eventsRdd.coalesce(1).toDS())
 
-      parsedEvents
+      val reshaped = parsedEvents
         .filter($"type" === "serviceMessage" && $"service" === "event")
         .select(DATA_COLUMNS_WITH_CAST: _*)
-        .write
+
+      reshaped.write
         .format("avro")
         .mode(SaveMode.ErrorIfExists)
         .save(s"$basePath/${getPartitionPathAndIncrementCounter(time)}")
 
       val noHeartbeat = parsedEvents.filter($"type" === "heartbeat" && $"service" === "event").isEmpty
-      if (noHeartbeat) {
-        numBatchesWithoutHeartbeat += 1
-        logWarning(s"$numBatchesWithoutHeartbeat batch(es) with no heartbeat event")
-        if (numBatchesWithoutHeartbeat >= 5) {
-          logError("more than 5 batches without heartbeat, assuming the websocket died, exiting")
+      val seenWorlds = reshaped.select($"world_id".as[Int]).distinct().collect().toSet
+      val isDataBad = noHeartbeat || ACTIVE_WORLDS.diff(seenWorlds).sizeIs >= 2
+
+      if (isDataBad) {
+        numBadBatches += 1
+        logWarning(s"$numBadBatches batch(es) with bad data - noHeartBeat: $noHeartbeat, seenWorlds: $seenWorlds")
+        if (numBadBatches >= 5) {
+          logError("more than 5 batches with bad data, assuming the websocket died, exiting")
           ssc.stop()
         }
       } else {
-        numBatchesWithoutHeartbeat = 0
+        numBadBatches = 0
       }
     }
 
@@ -124,4 +128,5 @@ object Ps2EventStreamer {
   final val DATA_COLUMNS_WITH_CAST =
     EVENT_PAYLOAD_COLUMNS.map { case (colName, colType) => col(s"payload.$colName").cast(colType).as(colName) }
 
+  final val ACTIVE_WORLDS = Set(1, 10, 13, 17) // 40 (no SolTech events still)
 }

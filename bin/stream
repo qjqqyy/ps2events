@@ -12,7 +12,7 @@ $SPARK_HOME/bin/spark-submit \
     --jars $SPARK_HADOOP_CLOUD_JAR \
     --conf spark.serializer=org.apache.spark.serializer.KryoSerializer \
     --conf spark.speculation=false \
-    --conf spark.streaming.receiverRestartDelay=50 \
+    --conf spark.streaming.receiverRestartDelay=0 \
     --conf spark.hadoop.fs.s3a.endpoint=$AWS_ENDPOINT \
     --conf spark.hadoop.mapreduce.fileoutputcommitter.marksuccessfuljobs=false \
     $DIR/../target/scala-2.13/ps2events-assembly-*.jar \
